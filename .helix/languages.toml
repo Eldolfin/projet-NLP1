@@ -1,0 +1,7 @@
+[language-server]
+pylsp = { command = "pylsp" }
+
+[[language]]
+name = "python"
+language-servers = [ "pylsp" ]
+
