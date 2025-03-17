@@ -17,11 +17,23 @@ def main():
 
     ds = load_dataset("AmazonScience/massive", "fr-FR")
 
-    train = ds["train"].to_pandas()
+    # model already tokenizes
+    # train["tokenized"] = train["utt"].apply(clean_text)
+    X_train = ds["train"]["utt"]
+    y_train = ds["train"]["scenario"]
+    X_test = ds["train"]["utt"]
+    y_test = ds["train"]["scenario"]
 
-    train["tokenized"] = train["utt"].apply(clean_text)
-    print(train[["utt", "tokenized"]])
-    nltk.bayesian(train)
+    vectorizer = CountVectorizer()
+    X_train_bow = vectorizer.fit_transform(X_train)
+    X_test_bow = vectorizer.fit_transform(X_test)
+
+    # Train Naïve Bayes classifier
+    clf = MultinomialNB()
+    clf.fit(X_train_bow, y_train)
+    score = clf.score(X_test_bow, y_test)
+
+    print(score)
 
 
 def clean_text(text: str) -> List[str]:
