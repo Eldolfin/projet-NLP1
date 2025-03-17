@@ -4,3 +4,6 @@
 	
 demo:
 	python main.py
+
+watch:
+	git ls-files | entr -c make demo
