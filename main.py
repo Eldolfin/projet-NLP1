@@ -10,6 +10,8 @@ from sklearn.metrics import accuracy_score
 
 from datasets import load_dataset
 
+from submodels import train_on_class
+
 
 def main():
     nltk.download("punkt_tab")
@@ -23,12 +25,19 @@ def main():
     # train["tokenized"] = train["utt"].apply(clean_text)
     X_train = ds["train"]["utt"]
     y_train = ds["train"][class_name]
-    X_test = ds["train"]["utt"]
-    y_test = ds["train"][class_name]
+    X_test = ds["test"]["utt"]
+    y_test = ds["test"][class_name]
 
     vectorizer = CountVectorizer()
     X_train_bow = vectorizer.fit_transform(X_train)
-    X_test_bow = vectorizer.fit_transform(X_test)
+    X_test_bow = vectorizer.transform(X_test)
+
+    # Train on each sub class
+    class_list = ds["train"].features[class_name].names
+    intent_models = {}
+    for i in range(len(class_list)):
+        (intent_vectorizer, intent_clf) = train_on_class(ds, i)
+        intent_models[i] = (intent_vectorizer, intent_clf)
 
     # Train Naïve Bayes classifier
     clf = MultinomialNB()

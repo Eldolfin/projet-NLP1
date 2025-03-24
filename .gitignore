@@ -1,2 +1,3 @@
 .direnv
 data/training.1600000.processed.noemoticon.csv
+__pycache__
