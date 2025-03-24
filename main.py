@@ -19,7 +19,9 @@ def main():
 
     ds = load_dataset("AmazonScience/massive", "fr-FR")
     class_name = "scenario"
-    label_decoder = ds["train"].features[class_name].int2str
+    sub_class_name = "intent"
+    scenario_decoder = ds["train"].features[class_name].int2str
+    intent_decoder = ds["train"].features[sub_class_name].int2str
 
     # model already tokenizes
     # train["tokenized"] = train["utt"].apply(clean_text)
@@ -50,11 +52,22 @@ def main():
     # clf.predict(vectorizer.fit_transform(phrase))
 
     # Test with a custom input
+    test_vectorizer, test_clf = vectorizer, clf
     while True:
-        test_phrase = input("\nEnter a phrase to classify: ")
-        (label, proba) = predict_scenario(test_phrase, vectorizer, clf)
-        label = label_decoder(int(label))
-        print(f"Ok je fais {label} (sur a {proba}%)")
+        # Choose what scenario to pick
+        test_class = input(f"\nEnter a scenario among {class_list}: ")
+        if test_class in class_list:
+            test_vectorizer, test_clf = intent_models[class_list.index(test_class)]
+            decoder = intent_decoder
+        else:
+            test_vectorizer, test_clf = vectorizer, clf
+            decoder = scenario_decoder
+
+        # Enter a phrase and print result
+        test_phrase = input("\nEntres une phrase de test: ")
+        (label, proba, label) = predict_scenario(test_phrase, test_vectorizer, test_clf)
+        label_str = decoder(int(label))
+        print(f"Ok je fais {label_str} ({label}) (sur a {proba}%)")
 
 
 def predict_scenario(
@@ -67,9 +80,12 @@ def predict_scenario(
     text_bow = vectorizer.transform([text])  # Convert to BoW
     probabilities = model.predict_proba(text_bow)[0]
     klass = probabilities.argmax()
+    print(probabilities)
     proba = probabilities[klass]
     proba = round(proba * 100, 3)
-    return klass, proba
+
+    intent_number = model.classes_[klass]
+    return klass, proba, intent_number
 
 
 def clean_text(text: str) -> List[str]:
