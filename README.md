@@ -9,5 +9,5 @@
   - [ ] bag of words (bayesian)
   - [ ] ngrams
   - [ ] word2vec/idf
-- [ ] rapport latext
+- [ ] rapport latex
 - [ ] benchmarks
