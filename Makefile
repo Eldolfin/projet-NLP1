@@ -3,7 +3,7 @@
 # 	unzip dataset.zip
 	
 demo:
-	python main.py
+	python src/main.py | lolcat
 
 watch:
 	git ls-files | entr -c make demo
