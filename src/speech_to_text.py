@@ -3,6 +3,7 @@ import whisper
 import scipy.signal
 import soundcard as sc
 
+
 def select_best_input_device():
     mics = sc.all_microphones()
     for mic in mics:
@@ -13,6 +14,7 @@ def select_best_input_device():
     print(f"Miro par defaut : {default.name}")
     return default
 
+
 def select_best_output_device():
     speakers = sc.all_speakers()
     for sp in speakers:
@@ -22,6 +24,7 @@ def select_best_output_device():
     default = sc.default_speaker()
     print(f"Output par defaut: {default.name}")
     return default
+
 
 def record_until_silence(mic, sample_rate=44100, channels=1,
                          block_duration=0.1, silence_threshold=0.01, silence_duration=1.0):
@@ -48,6 +51,7 @@ def record_until_silence(mic, sample_rate=44100, channels=1,
                         break
     return np.concatenate(frames, axis=0)
 
+
 def main():
     mic = select_best_input_device()
     speaker = select_best_output_device()
@@ -71,7 +75,7 @@ def main():
 
     print("Transcription avec whisper...")
     audio_data = np.squeeze(recording)
-    
+
     if audio_data.ndim > 1:
         audio_data = audio_data[:, 0]
 
@@ -83,9 +87,10 @@ def main():
 
     model = whisper.load_model("small")
     result = model.transcribe(audio_data)
-    
+
     print("Transcription:")
     print(result["text"])
+
 
 if __name__ == "__main__":
     main()
