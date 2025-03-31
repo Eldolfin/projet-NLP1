@@ -11,7 +11,7 @@ def select_best_input_device():
             print(f"Airpods selected: {mic.name}")
             return mic
     default = sc.default_microphone()
-    print(f"Miro par defaut : {default.name}")
+    print(f"Micro par defaut : {default.name}")
     return default
 
 
@@ -47,11 +47,52 @@ def record_until_silence(mic, sample_rate=44100, channels=1,
                 if recording_started:
                     silence_time += block_duration
                     if silence_time >= silence_duration:
-                        print(f"Silence detecte")
+                        print(f"Silence detected")
                         break
     return np.concatenate(frames, axis=0)
 
 
+def record():
+    mic = select_best_input_device()
+    speaker = select_best_output_device()
+
+    sample_rate = 44100
+    channels = 1
+
+    recording = record_until_silence(
+        mic,
+        sample_rate=sample_rate,
+        channels=channels,
+        block_duration=0.1,
+        silence_threshold=0.01,
+        silence_duration=1.0
+    )
+    print("Enregistrement fini")
+
+    print("Lecture audio... (si t'entends rien c'est que soit mauvais innput ou mauvais output ou auter probleme)")
+    speaker.play(recording, samplerate=sample_rate)
+    print("LEcture fini")
+
+    print("Transcription avec whisper...")
+    audio_data = np.squeeze(recording)
+
+    if audio_data.ndim > 1:
+        audio_data = audio_data[:, 0]
+
+    target_sr = 16000
+    if sample_rate != target_sr:
+        num_samples = int(len(audio_data) * target_sr / sample_rate)
+        audio_data = scipy.signal.resample(audio_data, num_samples)
+    audio_data = audio_data.astype(np.float32)
+
+    model = whisper.load_model("small")
+    result = model.transcribe(audio_data)
+
+    print("Transcription:")
+    return result["test"]
+
+
+"""
 def main():
     mic = select_best_input_device()
     speaker = select_best_output_device()
@@ -94,3 +135,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+"""
