@@ -9,6 +9,9 @@ class ngram_list:
         return self.ngrams[n].count(ngram)
 
     def get_gram(self, n, i):
+        if n not in self.ngrams:
+            print(f"{n} not in ngrams, keys are {self.ngrams.keys()}")
+            return []
         return self.ngrams[n][i]
 
     def __str__(self):

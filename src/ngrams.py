@@ -1,11 +1,12 @@
 from nltk import ngrams
 from utils import ngram_list
+from multiprocessing import Pool
 
 Ns = [2, 3, 4]
 
 
 def train_ngrams(ds, X_train, y_train, X_test, y_test):
-    print("OwO! Starting training for ngrams!!...\n")
+    print("OwO! Starting twaining for ngwams!!")
 
     # Decoder to translate ints to class names
     class_list = ds["train"].features["scenario"].names
@@ -14,13 +15,19 @@ def train_ngrams(ds, X_train, y_train, X_test, y_test):
 
     # Buil ngrams for each n for scenario class
     for n in Ns:
+        print(".", end="")
         scenario_ngram_list = build_scenario_grams(ds, n)
         scenario_ngrams.add_ngram(n, scenario_ngram_list)
 
         # Build ngrams for each N for each class
+        with Pool() as pool:
+            # Build ngrams for each class
+            results = pool.starmap(
+                build_intent_grams, [(ds, n, i) for i in range(len(class_list))]
+            )
+        # Add ngrams to intent_ngrams
         for i in range(len(class_list)):
-            intent_ngram_list = build_intent_grams(ds, n, i)
-            intent_ngrams[i].add_ngram(n, intent_ngram_list)
+            intent_ngrams[i].add_ngram(n, results[i])
 
     print("Done!!!! (≧◡≦) \n")
     return scenario_ngrams, intent_ngrams
@@ -60,7 +67,9 @@ def ngrams_classify(
                 scores[i] += gram.count(t) * n
 
     intent = scores.index(max(scores))
-    print(scores, scenario_decoder(scenario), intent_decoder(intent))
+    print(
+        f"\nSugoi no kawaine!! Je pense que tu weux pawler de {scenario_decoder(scenario)} et que tu weux plus pwecisement {intent_decoder(intent)} (≧◡≦) \n"
+    )
 
 
 def build_scenario_grams(ds, n):

@@ -22,7 +22,8 @@ def main():
         "\nUwU~ je suis Awexa, ton assistante pweferé!!! Toujours wà pour discuter avec twa nya~ (✿˵◕ ‿ ◕˵) \n\n"
     )
 
-    # vectorizer, clf, intent_models = train_bow(ds, X_train, y_train, X_test, y_test)
+    # Train models
+    vectorizer, clf, intent_models = train_bow(ds, X_train, y_train, X_test, y_test)
     scenario_grams, intent_grams = train_ngrams(ds, X_train, y_train, X_test, y_test)
 
     while True:
@@ -33,14 +34,8 @@ def main():
         if user_input == "quit":
             return
 
-        print(
-            "\n\nJe vais essayer de deviner ce que tu veux dire avec bow! nya~ (≧◡≦) \n"
-        )
         # bow_classify(ds, vectorizer, clf, intent_models, user_input)
         ngrams_classify(ds, scenario_grams, intent_grams, user_input)
-
-        # TODO: add user_input argument in train_ngrams function
-        # train_ngrams(ds, X_train, y_train, X_test, y_test)
 
         # TODO: add train_nn
 
