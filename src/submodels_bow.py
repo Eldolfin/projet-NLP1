@@ -9,7 +9,7 @@ def train_on_class(
     ds: Dataset, class_int: int
 ) -> Tuple[CountVectorizer, MultinomialNB]:
     # Isolate rows which's class name is class_int
-    filtered = ds.filter(lambda x: x["scenario"] == class_int)
+    filtered = ds[ds["scenario" == class_int]]
     label_decoder = filtered["train"].features["scenario"].int2str
 
     # Create train and test sets
