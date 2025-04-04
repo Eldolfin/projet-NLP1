@@ -1,6 +1,7 @@
 from nltk import ngrams
 from utils import ngram_list
 from multiprocessing import Pool
+import random
 
 Ns = [2, 3, 4]
 
@@ -82,7 +83,7 @@ def build_scenario_grams(ds, n):
         messageList = filtered["train"]["utt"]
         ngram_list.append([])
         for message in messageList:
-            ngram = list(ngrams(message.split(), n))
+            ngram = list(ngrams(message.lower().split(), n))
             ngram_list[i] += ngram
 
     return ngram_list
@@ -107,3 +108,68 @@ def build_intent_grams(ds, n, class_int):
             scenario_ngram_list[i] += ngram
 
     return scenario_ngram_list
+
+
+########################### GENERATION ###########################
+def ngrams_generate(
+    start_word: str,
+    scenario_ngrams: ngram_list,
+    intent_ngrams: list,
+    words: int = 5,
+    scenario: int = -1,
+    intent: int = -1,
+):
+    output = start_word
+    previous_words = [start_word]
+
+    for i in range(words - 1):
+        new_word = generate_next_token(
+            previous_words, scenario_ngrams, intent_ngrams, scenario, intent
+        )
+        if new_word is None:
+            return output + "?"
+
+        output += " " + new_word
+        previous_words.append(new_word)
+
+    return output + "?"
+
+
+def generate_next_token(
+    previous_words: list,
+    scenario_ngrams: ngram_list,
+    intent_ngrams: list,
+    scenario: int = -1,
+    intent: int = -1,
+):
+    """
+    This function generates the next token based on the previous word and the ngrams.
+    """
+
+    for n in range(min(len(previous_words) + 1, Ns[-1]), 1, -1):
+        # Build corresponding ngram from previous words
+        previous_seq = tuple(previous_words[-(n - 1) :])
+
+        if scenario > 0:
+            scenario_ngram = scenario_ngrams.get_grams(n, scenario)
+        else:
+            scenario_ngram = [
+                gram
+                for scenario_grams in scenario_ngrams.ngrams[n]
+                for gram in scenario_grams
+            ]
+
+        # Get next token
+        if n == 2:
+            filtered = list(
+                filter(lambda x: x[0] == previous_seq[0], scenario_ngram)
+            )  # Special case for simgle tuple
+        else:
+            filtered = list(
+                filter(lambda x: x[: n - 1] == previous_seq, scenario_ngram)
+            )
+
+        if len(filtered) != 0:
+            return random.choice(filtered)[-1]
+
+    return None

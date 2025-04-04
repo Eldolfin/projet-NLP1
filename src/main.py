@@ -1,5 +1,5 @@
 from bow import train_bow, bow_classify
-from ngrams import train_ngrams, ngrams_classify
+from ngrams import train_ngrams, ngrams_classify, ngrams_generate
 import nltk
 from datasets import load_dataset
 
@@ -23,19 +23,22 @@ def main():
     )
 
     # Train models
-    vectorizer, clf, intent_models = train_bow(ds, X_train, y_train, X_test, y_test)
+    # vectorizer, clf, intent_models = train_bow(ds, X_train, y_train, X_test, y_test)
     scenario_grams, intent_grams = train_ngrams(ds, X_train, y_train, X_test, y_test)
+
+    for i in range(10):
+        print(ngrams_generate("quelle", scenario_grams, intent_grams, 15))
 
     while True:
         user_input = input(
             "\nEntwe une fwhase à cwassifier, s'il te pwait, nya~ 💖\n> "
-        )
+        ).lower()
 
         if user_input == "quit":
             return
 
         # bow_classify(ds, vectorizer, clf, intent_models, user_input)
-        ngrams_classify(ds, scenario_grams, intent_grams, user_input)
+        # ngrams_classify(ds, scenario_grams, intent_grams, user_input)
 
         # TODO: add train_nn
 
