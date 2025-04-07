@@ -3,11 +3,13 @@
 ## TODO
 
 - [x] download & tokenize dataset
-- [ ] main classifier/sub classifier approch
+- [x] main classifier/sub classifier approch
 - [ ] big classifier approch
 - [ ] try different models
-  - [ ] bag of words (bayesian)
-  - [ ] ngrams
+  - [x] bag of words (bayesian)
+  - [x] ngrams
   - [ ] word2vec/idf
+  - [ ] RNN / FNN
+  - [] Transformers
 - [ ] rapport latex
 - [ ] benchmarks

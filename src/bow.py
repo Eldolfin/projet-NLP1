@@ -1,8 +1,10 @@
 from typing import Tuple
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.feature_extraction.text import CountVectorizer as Cv, TfidfVectorizer as Tfv
+from sklearn.naive_bayes import MultinomialNB as MNB
+from sklearn.linear_model import LogisticRegression as Lr
 from submodels_bow import train_on_class
 from phrases import UWU_PHRASES
+from utils import Prediction
 
 
 def train_bow(ds, X_train, y_train, X_test, y_test):
@@ -10,7 +12,7 @@ def train_bow(ds, X_train, y_train, X_test, y_test):
     intent_list = ds["train"].features["scenario"].names
     print("UwU! Starting training for BoW!!...\n")
 
-    vectorizer = CountVectorizer()
+    vectorizer = Tfv()
     X_train_bow = vectorizer.fit_transform(X_train)
 
     # Train on each sub class
@@ -21,7 +23,7 @@ def train_bow(ds, X_train, y_train, X_test, y_test):
         intent_models[i] = (intent_vectorizer, intent_clf)
 
     # Train Naïve Bayes classifier
-    clf = MultinomialNB()
+    clf = Lr()
     clf.fit(X_train_bow, y_train)
 
     print("Done!!!! (≧◡≦) \n")
@@ -30,8 +32,8 @@ def train_bow(ds, X_train, y_train, X_test, y_test):
 
 def bow_classify(
     ds,
-    vectorizer: CountVectorizer,
-    clf: MultinomialNB,
+    vectorizer: Tfv,
+    clf: Lr,
     intent_models: dict,
     user_input,
 ):
@@ -44,12 +46,16 @@ def bow_classify(
 
     # Enter a phrase and print result
     (klass, proba, intent_n) = predict_scenario(user_input, test_vectorizer, test_clf)
-    print(UWU_PHRASES[label_str] + "\n" + intent_decoder(int(intent_n)))
-    print(f"proba: {proba}")
+    return Prediction(
+        "BoW",
+        label_str,
+        intent_decoder(int(intent_n)),
+        proba,
+    )
 
 
 def predict_scenario(
-    text: str, vectorizer: CountVectorizer, clf: MultinomialNB
+    text: str, vectorizer: Tfv, clf: Lr
 ) -> Tuple[int, float]:
     """
     Preprocesses input text, vectorizes it, and predicts the scenario.

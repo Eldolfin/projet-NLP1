@@ -1,18 +1,35 @@
 from nltk import ngrams
-from utils import ngram_list
 from multiprocessing import Pool
 import random
+from utils import Prediction
 
 Ns = [2, 3, 4]
+class NgramList:
+    def __init__(self, n):
+        self.ngrams = n
 
+    def add_ngram(self, n, ngram_list):
+        self.ngrams[n] = ngram_list
+
+    def count(self, ngram, n):
+        return self.ngrams[n].count(ngram)
+
+    def get_gram(self, n, i):
+        if n not in self.ngrams:
+            print(f"{n} not in ngrams, keys are {self.ngrams.keys()}")
+            return []
+        return self.ngrams[n][i]
+
+    def __str__(self):
+        return str(self.ngrams)
 
 def train_ngrams(ds, X_train, y_train, X_test, y_test):
     print("OwO! Starting twaining for ngwams!!")
 
     # Decoder to translate ints to class names
     class_list = ds["train"].features["scenario"].names
-    scenario_ngrams = ngram_list({})
-    intent_ngrams = [ngram_list({})] * len(class_list)
+    scenario_ngrams = NgramList({})
+    intent_ngrams = [NgramList({})] * len(class_list)
 
     # Buil ngrams for each n for scenario class
     for n in Ns:
@@ -35,7 +52,7 @@ def train_ngrams(ds, X_train, y_train, X_test, y_test):
 
 
 def ngrams_classify(
-    ds, scenario_ngrams: ngram_list, intent_ngrams: list, user_input: str
+    ds, scenario_ngrams: NgramList, intent_ngrams: list, user_input: str
 ):
     scenario_decoder = ds["train"].features["scenario"].int2str
     intent_decoder = ds["train"].features["intent"].int2str
@@ -56,7 +73,7 @@ def ngrams_classify(
                 gram = scenario_ngrams.get_gram(n, i)
                 scores[i] += gram.count(t) * n
 
-    scenario = scores.index(max(scores))
+    scenario_n = scores.index(max(scores))
     scores = [0] * len(intent_list)
 
     # For each ngram, check if it appears somewhere in the built intent ngrams and if so, increase score.
@@ -64,12 +81,22 @@ def ngrams_classify(
         ngram = list(ngrams(words, n))
         for t in ngram:
             for i in range(len(intent_list)):
-                gram = intent_ngrams[scenario].get_gram(n, i)
+                gram = intent_ngrams[scenario_n].get_gram(n, i)
                 scores[i] += gram.count(t) * n
 
-    intent = scores.index(max(scores))
-    print(
-        f"\nSugoi no kawaine!! Je pense que tu weux pawler de {scenario_decoder(scenario)} et que tu weux plus pwecisement {intent_decoder(intent)} (≧◡≦) \n"
+    intent_n = scores.index(max(scores))
+    scenario = scenario_decoder(scenario_n)
+    intent = intent_decoder(intent_n)
+    
+    # print(
+    #    f"\nSugoi no kawaine!! Je pense que tu weux pawler de {scenario} et que tu weux plus pwecisement {intent} (≧◡≦) \n"
+    # )
+    
+    return Prediction(
+        method="ngwams",
+        scenario=scenario,
+        intent=intent,
+        proba=scores[intent_n],
     )
 
 
@@ -113,7 +140,7 @@ def build_intent_grams(ds, n, class_int):
 ########################### GENERATION ###########################
 def ngrams_generate(
     start_word: str,
-    scenario_ngrams: ngram_list,
+    scenario_ngrams: NgramList,
     intent_ngrams: list,
     words: int = 5,
     scenario: int = -1,
@@ -137,7 +164,7 @@ def ngrams_generate(
 
 def generate_next_token(
     previous_words: list,
-    scenario_ngrams: ngram_list,
+    scenario_ngrams: NgramList,
     intent_ngrams: list,
     scenario: int = -1,
     intent: int = -1,

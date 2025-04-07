@@ -23,11 +23,11 @@ def main():
     )
 
     # Train models
-    # vectorizer, clf, intent_models = train_bow(ds, X_train, y_train, X_test, y_test)
+    vectorizer, clf, intent_models = train_bow(ds, X_train, y_train, X_test, y_test)
     scenario_grams, intent_grams = train_ngrams(ds, X_train, y_train, X_test, y_test)
 
-    for i in range(10):
-        print(ngrams_generate("quelle", scenario_grams, intent_grams, 15))
+    # for i in range(10):
+        # print(ngrams_generate("quelle", scenario_grams, intent_grams, 15))
 
     while True:
         user_input = input(
@@ -36,9 +36,13 @@ def main():
 
         if user_input == "quit":
             return
+        
+        print("")
+        print(bow_classify(ds, vectorizer, clf, intent_models, user_input))
+        print(ngrams_classify(ds, scenario_grams, intent_grams, user_input))
 
-        # bow_classify(ds, vectorizer, clf, intent_models, user_input)
-        # ngrams_classify(ds, scenario_grams, intent_grams, user_input)
+        # TODO: print this with the consensus (majority of votes between models) 
+        # f"Sugoi no kawaine!!\n D'apwes la method {self.method}, we pense que tu weux pawler de {self.scenario} et que tu weux plus pwecisement {self.intent} awec une pwoba de {self.proba} (≧◡≦) \n"
 
         # TODO: add train_nn
 
