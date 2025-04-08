@@ -1,13 +1,17 @@
-from bow import train_bow, bow_classify
+from basic import basic_train, basic_classify
 from ngrams import train_ngrams, ngrams_classify, ngrams_generate
 import nltk
 from datasets import load_dataset
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer as Tfv
+from sklearn.linear_model import LogisticRegression as Lr
+from sklearn.naive_bayes import MultinomialNB as Mnb
 
 
 def main():
     print("Downloading ntlk...\n")
     nltk.download("punkt_tab", quiet=True)
     nltk.download("stopwords", quiet=True)
+    print("Done!\n")
 
     ds = load_dataset("AmazonScience/massive", "fr-FR")
     class_name = "scenario"
@@ -23,7 +27,8 @@ def main():
     )
 
     # Train models
-    vectorizer, clf, intent_models = train_bow(ds, X_train, y_train, X_test, y_test)
+    bow_vectorizer, bow_clf, bow_intent_models = basic_train(ds, X_train, y_train, X_test, y_test, CountVectorizer, Mnb)
+    idf_vectorizer, idf_clf, idf_intent_models = basic_train(ds, X_train, y_train, X_test, y_test, Tfv, Lr)
     scenario_grams, intent_grams = train_ngrams(ds, X_train, y_train, X_test, y_test)
 
     # for i in range(10):
@@ -38,7 +43,8 @@ def main():
             return
         
         print("")
-        print(bow_classify(ds, vectorizer, clf, intent_models, user_input))
+        print(basic_classify(ds, bow_vectorizer, bow_clf, bow_intent_models, user_input, "bow"))
+        print(basic_classify(ds, idf_vectorizer, idf_clf, idf_intent_models, user_input, "idf"))
         print(ngrams_classify(ds, scenario_grams, intent_grams, user_input))
 
         # TODO: print this with the consensus (majority of votes between models) 
