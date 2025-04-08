@@ -31,8 +31,8 @@ def basic_train(ds, X_train, y_train, X_test, y_test, vectorizer_template: type,
 
 def basic_classify(
     ds,
-    vectorizer: Tfv,
-    clf: Lr,
+    vectorizer: Cv | Tfv,
+    clf: Lr | Mnb,
     intent_models: dict,
     user_input: str,
     method: str,
