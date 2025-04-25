@@ -13,3 +13,8 @@
   - [] Transformers
 - [ ] rapport latex
 - [ ] benchmarks
+- [ ] demo: use [rich](https://github.com/Textualize/rich)
+  - [ ] table with models results and probabilities
+  - [ ] live prediction on each keystroke
+  - [ ] copilot like autocompletion with transformers
+  - [ ] nicer progress bars?
