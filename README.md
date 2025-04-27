@@ -1,5 +1,9 @@
 # projet-NLP1
 
+## DEMO
+
+https://github.com/user-attachments/assets/84d10e43-1515-4a40-b5b3-9bae11098f8e
+
 ## TODO
 
 - [x] download & tokenize dataset
