@@ -96,6 +96,7 @@ def tf_classify(
     user_input: str,
     method: str,
 ):
+    before = time.process_time()
     scenario_decoder = ds["train"].features["scenario"].int2str
     intent_decoder = ds["train"].features["intent"].int2str
 
@@ -112,6 +113,7 @@ def tf_classify(
         label_str,
         intent_decoder(int(intent_n)),
         proba,
+        before=before,
     )
 
 

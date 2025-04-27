@@ -2,6 +2,7 @@ from nltk import ngrams
 from multiprocessing import Pool
 import random
 from utils import Prediction
+import time
 
 Ns = [2, 3, 4]
 
@@ -53,6 +54,7 @@ def train_ngrams(ds, X_train, y_train, X_test, y_test):
 def ngrams_classify(
     ds, scenario_ngrams: NgramList, intent_ngrams: list, user_input: str
 ):
+    before = time.process_time()
     scenario_decoder = ds["train"].features["scenario"].int2str
     intent_decoder = ds["train"].features["intent"].int2str
     class_list = ds["train"].features["scenario"].names
@@ -96,6 +98,7 @@ def ngrams_classify(
         scenario=scenario,
         intent=intent,
         proba=scores[intent_n],
+        before=before,
     )
 
 

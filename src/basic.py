@@ -6,6 +6,7 @@ from sklearn.feature_extraction.text import (
 from sklearn.naive_bayes import MultinomialNB as Mnb
 from sklearn.linear_model import LogisticRegression as Lr
 from submodels_basic import train_on_class
+import time
 
 # from phrases import UWU_PHRASES
 from utils import Prediction
@@ -50,6 +51,7 @@ def basic_classify(
     user_input: str,
     method: str,
 ) -> Prediction:
+    before = time.process_time()
     scenario_decoder = ds["train"].features["scenario"].int2str
     intent_decoder = ds["train"].features["intent"].int2str
 
@@ -65,6 +67,7 @@ def basic_classify(
         label_str,
         intent_decoder(int(intent_n)),
         proba,
+        before=before,
     )
 
 

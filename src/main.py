@@ -9,6 +9,7 @@ from textual.widgets import (
     Header,
     Footer,
     DataTable,
+    ProgressBar,
 )
 from textual.containers import Container, Horizontal
 from enum import Enum
@@ -16,16 +17,18 @@ import asyncio
 from utils import Prediction
 from typing import List
 import time
-import random as rand
 from phrases import SCENARIOS
-from term_widgets import SpinnerWidget
-import basic
-import ngrams
-import word2vec
 from dataclasses import dataclass
 
 # Disable training models and loading dataset for faster ui iteration
 DISABLE_MODELS = False
+
+if DISABLE_MODELS:
+    import random as rand
+else:
+    import basic
+    import ngrams
+    import word2vec
 
 
 @dataclass
@@ -70,10 +73,10 @@ class DemoNlpApp(App):
             height: 20%
         }
         .training-step-indicator {
-            width: 6%;
+            width: 10%;
+            margin: 0 1;
         }
     """
-    time_taken_sec = reactive(0.0)
 
     def content(self) -> ComposeResult:
         match self.state:
@@ -86,7 +89,7 @@ class DemoNlpApp(App):
                     if i + 1 == len(self.training_steps):
                         yield Horizontal(
                             Container(
-                                SpinnerWidget(),
+                                ProgressBar(),
                                 classes="training-step-indicator",
                             ),
                             Container(
@@ -104,7 +107,6 @@ class DemoNlpApp(App):
                         )
             case AppState.INFERENCE_INPUT:
                 yield Input(placeholder="Type here...")
-                yield Static(f"Took {self.time_taken_sec}s")
                 yield DataTable()
 
     def compose(self) -> ComposeResult:
@@ -175,26 +177,30 @@ class DemoNlpApp(App):
         X_test = self.ds["test"]["utt"]
         y_test = self.ds["test"]["scenario"]
 
-        self.add_training_step("Training ngrams")
-        self.scenario_grams, self.intent_grams = ngrams.train_ngrams(
-            self.ds, X_train, y_train, X_test, y_test
-        )
         self.add_training_step("Training bag of words")
         self.bow_vectorizer, self.bow_clf, self.bow_intent_models = (
             basic.basic_train(
                 self.ds, X_train, y_train, X_test, y_test, CountVectorizer, Mnb
             )
         )
+
+        self.add_training_step("Training ngrams")
+        self.scenario_grams, self.intent_grams = ngrams.train_ngrams(
+            self.ds, X_train, y_train, X_test, y_test
+        )
+
         self.add_training_step("Training idf")
         self.idf_vectorizer, self.idf_clf, self.idf_intent_models = (
             basic.basic_train(
                 self.ds, X_train, y_train, X_test, y_test, Tfv, Lr
             )
         )
+
         self.add_training_step("Training word2vec")
         self.w2v_model, self.w2v_clf, self.w2v_intent_models = (
             word2vec.w2v_train(self.ds, X_train, y_train, X_test, y_test)
         )
+
         # self.add_training_step("Training neural network")
         # tf_model, tf_clf, tf_intent_models = tf_train(self.ds)
 
@@ -203,15 +209,13 @@ class DemoNlpApp(App):
         self.refresh(recompose=True)
 
     def on_input_changed(self, event: Input.Changed):
-
         self.input_text = event.value
-        before = time.process_time()
         predictions = self.predict_class(self.input_text)
-        after = time.process_time()
-        self.time_taken_sec = after - before
         table = self.query_one(DataTable)
         table.clear(columns=True)
-        table.add_columns("Model", "Scenario", "Intent", "Proba")
+        table.add_columns(
+            "Model", "Scenario", "Intent", "Proba", "Inference time"
+        )
         table.zebra_stripes = True
         for prediction in predictions:
             table.add_row(
@@ -219,6 +223,7 @@ class DemoNlpApp(App):
                 prediction.scenario,
                 prediction.intent,
                 str(round(prediction.proba, 2)),
+                str(round(prediction.time_taken, 3)),
             )
 
     def predict_class(self, text) -> List[Prediction]:
@@ -230,12 +235,14 @@ class DemoNlpApp(App):
                     rand.choice(SCENARIOS),
                     rand.choice(SCENARIOS) + "/" + rand.choice(SCENARIOS),
                     rand.random() * 100,
+                    before=time.process_time() - 0.03,
                 ),
                 Prediction(
                     "clown model 🤡",
                     rand.choice(SCENARIOS[:2]),
                     SCENARIOS[0] + "/" + rand.choice(SCENARIOS[:2]),
                     rand.random() * 10,
+                    before=time.process_time() - 0.01,
                 ),
             ]
         return [
@@ -247,6 +254,9 @@ class DemoNlpApp(App):
                 self.input_text,
                 "bow",
             ),
+            ngrams.ngrams_classify(
+                self.ds, self.scenario_grams, self.intent_grams, self.input_text
+            ),
             basic.basic_classify(
                 self.ds,
                 self.idf_vectorizer,
@@ -254,9 +264,6 @@ class DemoNlpApp(App):
                 self.idf_intent_models,
                 self.input_text,
                 "idf",
-            ),
-            ngrams.ngrams_classify(
-                self.ds, self.scenario_grams, self.intent_grams, self.input_text
             ),
             word2vec.w2v_classify(
                 self.ds,
@@ -272,43 +279,5 @@ class DemoNlpApp(App):
         ]
 
 
-def main():
-    DemoNlpApp().run()
-    # not needed?
-    # nltk.download("punkt_tab", quiet=True)
-    # nltk.download("stopwords", quiet=True)
-
-    # print(
-    #     "\nUwU~ je suis Awexa, ton assistante pweferé!!! Toujours wà pour discuter avec twa nya~ (✿˵◕ ‿ ◕˵) \n\n"
-    # )
-
-    # for i in range(10):
-    # print(ngrams_generate("quelle", scenario_grams, intent_grams, 15))
-
-    # while True:
-    #     user_input = input(
-    #         "\nEntwe une fwhase à cwassifier, s'il te pwait, nya~ 💖\n> "
-    #     ).lower()
-
-    #     if user_input == "quit":
-    #         return
-
-    # print("")
-    # print(basic_classify(ds, bow_vectorizer, bow_clf, bow_intent_models, user_input, "bow"))
-    # print(basic_classify(ds, idf_vectorizer, idf_clf, idf_intent_models, user_input, "idf"))
-    # print(w2v_classify(ds, w2v_model, w2v_clf, w2v_intent_models, user_input, "word2vec"))
-    # print(
-    #     tf_classify(
-    #         ds, tf_model, tf_clf, tf_intent_models, user_input, "word2vec"
-    #     )
-    # )
-    # print(ngrams_classify(ds, scenario_grams, intent_grams, user_input))
-
-    # TODO: print this with the consensus (majority of votes between models)
-    # f"Sugoi no kawaine!!\n D'apwes la method {self.method}, we pense que tu weux pawler de {self.scenario} et que tu weux plus pwecisement {self.intent} awec une pwoba de {self.proba} (≧◡≦) \n"
-
-    # TODO: add train_nn
-
-
 if __name__ == "__main__":
-    main()
+    DemoNlpApp().run()
