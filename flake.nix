@@ -19,6 +19,10 @@
               (
                 ppkgs:
                   with ppkgs; [
+                    sentence-transformers
+                    ipython
+                    rich
+                    textual
                     datasets
                     jupyter-all
                     notebook

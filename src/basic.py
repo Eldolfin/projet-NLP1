@@ -1,15 +1,27 @@
 from typing import Tuple
-from sklearn.feature_extraction.text import CountVectorizer as Cv, TfidfVectorizer as Tfv
+from sklearn.feature_extraction.text import (
+    CountVectorizer as Cv,
+    TfidfVectorizer as Tfv,
+)
 from sklearn.naive_bayes import MultinomialNB as Mnb
 from sklearn.linear_model import LogisticRegression as Lr
 from submodels_basic import train_on_class
-from phrases import UWU_PHRASES
+
+# from phrases import UWU_PHRASES
 from utils import Prediction
 
-def basic_train(ds, X_train, y_train, X_test, y_test, vectorizer_template: type,  clf_template: type):
+
+def basic_train(
+    ds,
+    X_train,
+    y_train,
+    X_test,
+    y_test,
+    vectorizer_template: type,
+    clf_template: type,
+):
     # Access intent list
     intent_list = ds["train"].features["scenario"].names
-    print("UwU! Starting training for BoW!!...\n")
 
     vectorizer = vectorizer_template()
     X_train_bow = vectorizer.fit_transform(X_train)
@@ -18,14 +30,15 @@ def basic_train(ds, X_train, y_train, X_test, y_test, vectorizer_template: type,
     intent_models = {}
     class_list = ds["train"].features["scenario"].names
     for i in range(len(class_list)):
-        (intent_vectorizer, intent_clf) = train_on_class(ds, i, vectorizer_template, clf_template)
+        (intent_vectorizer, intent_clf) = train_on_class(
+            ds, i, vectorizer_template, clf_template
+        )
         intent_models[i] = (intent_vectorizer, intent_clf)
 
     # Train Naïve Bayes classifier
     clf = clf_template()
     clf.fit(X_train_bow, y_train)
 
-    print("Done!!!! (≧◡≦) \n")
     return vectorizer, clf, intent_models
 
 
@@ -36,7 +49,7 @@ def basic_classify(
     intent_models: dict,
     user_input: str,
     method: str,
-):
+) -> Prediction:
     scenario_decoder = ds["train"].features["scenario"].int2str
     intent_decoder = ds["train"].features["intent"].int2str
 
@@ -44,8 +57,9 @@ def basic_classify(
     test_vectorizer, test_clf = intent_models[scenario_n]
     label_str = scenario_decoder(int(scenario_n))
 
-    # Enter a phrase and print result
-    (klass, proba, intent_n) = predict_scenario(user_input, test_vectorizer, test_clf)
+    (klass, proba, intent_n) = predict_scenario(
+        user_input, test_vectorizer, test_clf
+    )
     return Prediction(
         method,
         label_str,
@@ -54,9 +68,7 @@ def basic_classify(
     )
 
 
-def predict_scenario(
-    text: str, vectorizer: Tfv, clf: Lr
-) -> Tuple[int, float]:
+def predict_scenario(text: str, vectorizer: Tfv, clf: Lr) -> Tuple[int, float]:
     """
     Preprocesses input text, vectorizes it, and predicts the scenario.
     returns: (class_index, confidence)

@@ -22,7 +22,7 @@ def train_on_class(
     X_test_bow = vectorizer.transform(X_test)
 
     # Train Naïve Bayes classifier
-    if len(set(filtered["train"]["intent"])) > 1 :
+    if len(set(filtered["train"]["intent"])) > 1:
         clf = clf_template()
     else:
         clf = MultinomialNB()
@@ -30,5 +30,4 @@ def train_on_class(
     score = clf.score(X_test_bow, y_test)
 
     label = label_decoder(class_int)
-    print(f"test dataset score for intent {label}: {score}")
     return vectorizer, clf

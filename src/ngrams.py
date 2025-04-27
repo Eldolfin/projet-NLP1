@@ -4,6 +4,8 @@ import random
 from utils import Prediction
 
 Ns = [2, 3, 4]
+
+
 class NgramList:
     def __init__(self, n):
         self.ngrams = n
@@ -16,16 +18,15 @@ class NgramList:
 
     def get_gram(self, n, i):
         if n not in self.ngrams:
-            print(f"{n} not in ngrams, keys are {self.ngrams.keys()}")
+            # print(f"{n} not in ngrams, keys are {self.ngrams.keys()}")
             return []
         return self.ngrams[n][i]
 
     def __str__(self):
         return str(self.ngrams)
 
-def train_ngrams(ds, X_train, y_train, X_test, y_test):
-    print("OwO! Starting twaining for ngwams!!")
 
+def train_ngrams(ds, X_train, y_train, X_test, y_test):
     # Decoder to translate ints to class names
     class_list = ds["train"].features["scenario"].names
     scenario_ngrams = NgramList({})
@@ -33,7 +34,6 @@ def train_ngrams(ds, X_train, y_train, X_test, y_test):
 
     # Buil ngrams for each n for scenario class
     for n in Ns:
-        print(".", end="")
         scenario_ngram_list = build_scenario_grams(ds, n)
         scenario_ngrams.add_ngram(n, scenario_ngram_list)
 
@@ -47,7 +47,6 @@ def train_ngrams(ds, X_train, y_train, X_test, y_test):
         for i in range(len(class_list)):
             intent_ngrams[i].add_ngram(n, results[i])
 
-    print("Done!!!! (≧◡≦) \n")
     return scenario_ngrams, intent_ngrams
 
 
@@ -87,11 +86,11 @@ def ngrams_classify(
     intent_n = scores.index(max(scores))
     scenario = scenario_decoder(scenario_n)
     intent = intent_decoder(intent_n)
-    
+
     # print(
     #    f"\nSugoi no kawaine!! Je pense que tu weux pawler de {scenario} et que tu weux plus pwecisement {intent} (≧◡≦) \n"
     # )
-    
+
     return Prediction(
         method="ngwams",
         scenario=scenario,

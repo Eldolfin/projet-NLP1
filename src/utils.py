@@ -1,5 +1,5 @@
-class Prediction :
-    def __init__(self, method: str, scenario: str, intent: str, proba: str):
+class Prediction:
+    def __init__(self, method: str, scenario: str, intent: str, proba: float):
         self.method = method
         self.scenario = scenario
         self.intent = intent
