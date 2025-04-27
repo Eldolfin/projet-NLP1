@@ -2,6 +2,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.linear_model import LogisticRegression as Lr
 from typing import Tuple
 from utils import Prediction
+import time
 
 
 def w2v_train(
@@ -43,7 +44,6 @@ def train_on_class(ds, class_index):
 
     # Filter dataset for the specific class
     filtered = ds.filter(lambda x: x["scenario"] == class_index)
-    label_decoder = filtered["train"].features["scenario"].int2str
 
     X_train = filtered["train"]["utt"]
     y_train = filtered["train"]["intent"]
@@ -59,15 +59,16 @@ def train_on_class(ds, class_index):
     if len(set(filtered["train"]["intent"])) > 1:
         clf = Lr()
         clf.fit(X_train_encoded, y_train)
-        score = clf.score(X_test_encoded, y_test)
+        # score = clf.score(X_test_encoded, y_test)
     else:
-        clf = OneClassSVM(gamma="auto")
+        clf = OneClassSVM(
+            gamma="auto"
+        )  # crashes because it doesn't have predict_proba
         clf.fit(X_train_encoded, y_train)
-        score = 1.0
+        # score = 1.0
 
-    # Try testing
-    label = label_decoder(class_index)
-
+    # label_decoder = filtered["train"].features["scenario"].int2str
+    # label = label_decoder(class_index)
     # print(f"test dataset score for intent {label}: {score}")
     return model, clf
 

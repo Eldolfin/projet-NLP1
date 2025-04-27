@@ -38,6 +38,7 @@ class TrainingStep:
     name: str
     started_at: float
     ended_at: float
+    # TODO: add score?
 
     def time_taken_secs(self) -> float:
         return round(self.ended_at - self.started_at, 2)
@@ -196,10 +197,10 @@ class DemoNlpApp(App):
             )
         )
 
-        self.add_training_step("Training word2vec")
-        self.w2v_model, self.w2v_clf, self.w2v_intent_models = (
-            word2vec.w2v_train(self.ds, X_train, y_train, X_test, y_test)
-        )
+        # self.add_training_step("Training word2vec")
+        # self.w2v_model, self.w2v_clf, self.w2v_intent_models = (
+        #     word2vec.w2v_train(self.ds, X_train, y_train, X_test, y_test)
+        # )
 
         # self.add_training_step("Training neural network")
         # tf_model, tf_clf, tf_intent_models = tf_train(self.ds)
@@ -213,9 +214,11 @@ class DemoNlpApp(App):
         predictions = self.predict_class(self.input_text)
         table = self.query_one(DataTable)
         table.clear(columns=True)
-        table.add_columns(
-            "Model", "Scenario", "Intent", "Proba", "Inference time"
-        )
+        table.add_column("Model", key="model")
+        table.add_column("Scenario", key="scenario")
+        table.add_column("Intent", key="intent")
+        table.add_column("Proba", key="proba")
+        table.add_column("Inference time", key="time")
         table.zebra_stripes = True
         for prediction in predictions:
             table.add_row(
@@ -225,6 +228,7 @@ class DemoNlpApp(App):
                 str(round(prediction.proba, 2)),
                 str(round(prediction.time_taken, 3)),
             )
+        table.sort("proba", reverse=True)
 
     def predict_class(self, text) -> List[Prediction]:
 
@@ -265,14 +269,14 @@ class DemoNlpApp(App):
                 self.input_text,
                 "idf",
             ),
-            word2vec.w2v_classify(
-                self.ds,
-                self.w2v_model,
-                self.w2v_clf,
-                self.w2v_intent_models,
-                self.input_text,
-                "word2vec",
-            ),
+            # word2vec.w2v_classify(
+            #     self.ds,
+            #     self.w2v_model,
+            #     self.w2v_clf,
+            #     self.w2v_intent_models,
+            #     self.input_text,
+            #     "word2vec",
+            # ),
             # tf_classify(
             #     ds, tf_model, tf_clf, tf_intent_models, user_input, "word2vec"
             # )
