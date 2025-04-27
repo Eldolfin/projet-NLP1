@@ -1,6 +1,5 @@
 from sentence_transformers import SentenceTransformer
 from sklearn.linear_model import LogisticRegression as Lr
-from sklearn.svm import OneClassSVM
 from typing import Tuple
 from utils import Prediction
 
@@ -40,6 +39,8 @@ def train_on_class(ds, class_index):
     """
     Trains a sub-model for a specific class.
     """
+    from sklearn.svm import OneClassSVM
+
     # Filter dataset for the specific class
     filtered = ds.filter(lambda x: x["scenario"] == class_index)
     label_decoder = filtered["train"].features["scenario"].int2str

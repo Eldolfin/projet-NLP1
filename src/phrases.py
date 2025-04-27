@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import List
 
 UWU_PHRASES = {
     "social": "UwU~ je suis ton chatbot social pweferé, toujours wà pour discuter avec twa nya~ (✿˵◕ ‿ ◕˵)",
@@ -20,3 +21,5 @@ UWU_PHRASES = {
     "alarm": "Nyaa~ Réveil programmé! Je vais miauler pour twa quand il sonnera UwU~ ⏰✨",
     "weather": "UwU~ Le temps est magnifique aujourd’hui! Je te donne les détails si tu veux~ 🌤️ (✿˵◕ ‿ ◕˵)",
 }
+
+SCENARIOS: List[str] = list(UWU_PHRASES.keys())
