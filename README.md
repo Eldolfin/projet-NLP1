@@ -16,10 +16,11 @@ https://github.com/user-attachments/assets/84d10e43-1515-4a40-b5b3-9bae11098f8e
   - [ ] RNN / FNN
   - [ ] Transformers
 - [ ] rapport latex
-- [ ] benchmarks
-- [ ] train models in parrallel OR save & load weights
+- [ ] benchmarks (f1 scores)
+- [x] cache weights
 - [ ] demo: use [rich](https://github.com/Textualize/rich)
   - [x] table with models results and probabilities
   - [x] live prediction on each keystroke
   - [x] show each model training progress
   - [ ] copilot like autocompletion with transformers
+  - [ ] text-to-speech button

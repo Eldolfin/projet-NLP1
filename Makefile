@@ -1,8 +1,5 @@
-# data/training.1600000.processed.noemoticon.csv:
-# 	cd data
-# 	unzip dataset.zip
-	
 demo:
+	mkdir -p .cache
 	python src/main.py
 
 watch:

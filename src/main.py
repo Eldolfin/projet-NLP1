@@ -15,13 +15,17 @@ from textual.containers import Container, Horizontal
 from enum import Enum
 import asyncio
 from utils import Prediction
-from typing import List
+from typing import List, Self
 import time
 from phrases import SCENARIOS
 from dataclasses import dataclass
+import pickle
+from typing import Union
+import os
 
 # Disable training models and loading dataset for faster ui iteration
 DISABLE_MODELS = False
+MODEL_SAVE_PATH = "./.cache/models.pkl"
 
 if DISABLE_MODELS:
     import random as rand
@@ -29,6 +33,7 @@ else:
     import basic
     import ngrams
     import word2vec
+    import transformer
 
 
 @dataclass
@@ -44,6 +49,37 @@ class TrainingStep:
         return round(self.ended_at - self.started_at, 2)
 
 
+@dataclass
+class Models:
+    # Bag Of Words
+    bow_vectorizer = None
+    bow_clf = None
+    bow_intent_models = None
+    input_text = None
+    # Ngrams
+    scenario_grams = None
+    intent_grams = None
+    # IDF
+    idf_vectorizer = None
+    idf_clf = None
+    idf_intent_models = None
+    # W2V
+    w2v_model = None
+    w2v_clf = None
+    w2v_intent_models = None
+
+    def save(self) -> None:
+        with open(MODEL_SAVE_PATH, "wb") as f:
+            pickle.dump(self, f)
+
+    def load() -> Union[Self, None]:
+        # TODO: return none if not exist
+        if not os.path.isfile(MODEL_SAVE_PATH):
+            return None
+        with open(MODEL_SAVE_PATH, "rb") as f:
+            return pickle.load(f)
+
+
 class AppState(Enum):
     LOADING_DATASET = 1
     TRAINING_MODELS = 2
@@ -54,6 +90,7 @@ class DemoNlpApp(App):
     input_text = reactive("")
     state = reactive(AppState.LOADING_DATASET)
     training_steps: reactive[List[TrainingStep]] = reactive([])
+    models: Models = Models()
     BINDINGS = [
         Binding(key="^q", action="quit", description="Quit the app"),
     ]
@@ -161,11 +198,16 @@ class DemoNlpApp(App):
         self.refresh(recompose=True)
 
     def train_models_blocking(self):
+        self.add_training_step(f"Trying to load models from {MODEL_SAVE_PATH}")
+        models = Models.load()
+        if models is not None:
+            self.models = models
+            return
+
         import basic
         import ngrams
         import word2vec
-
-        # from transformer import tf_train, tf_classify
+        import transformer
         from sklearn.feature_extraction.text import (
             CountVectorizer,
             TfidfVectorizer as Tfv,
@@ -179,31 +221,39 @@ class DemoNlpApp(App):
         y_test = self.ds["test"]["scenario"]
 
         self.add_training_step("Training bag of words")
-        self.bow_vectorizer, self.bow_clf, self.bow_intent_models = (
-            basic.basic_train(
-                self.ds, X_train, y_train, X_test, y_test, CountVectorizer, Mnb
-            )
+        (
+            self.models.bow_vectorizer,
+            self.models.bow_clf,
+            self.models.bow_intent_models,
+        ) = basic.basic_train(
+            self.ds, X_train, y_train, X_test, y_test, CountVectorizer, Mnb
         )
 
         self.add_training_step("Training ngrams")
-        self.scenario_grams, self.intent_grams = ngrams.train_ngrams(
-            self.ds, X_train, y_train, X_test, y_test
+        self.models.scenario_grams, self.models.intent_grams = (
+            ngrams.train_ngrams(self.ds, X_train, y_train, X_test, y_test)
         )
 
         self.add_training_step("Training idf")
-        self.idf_vectorizer, self.idf_clf, self.idf_intent_models = (
-            basic.basic_train(
-                self.ds, X_train, y_train, X_test, y_test, Tfv, Lr
-            )
+        (
+            self.models.idf_vectorizer,
+            self.models.idf_clf,
+            self.models.idf_intent_models,
+        ) = basic.basic_train(
+            self.ds, X_train, y_train, X_test, y_test, Tfv, Lr
         )
 
-        # self.add_training_step("Training word2vec")
-        # self.w2v_model, self.w2v_clf, self.w2v_intent_models = (
-        #     word2vec.w2v_train(self.ds, X_train, y_train, X_test, y_test)
-        # )
+        self.add_training_step("Training word2vec")
+        (
+            self.models.w2v_model,
+            self.models.w2v_clf,
+            self.models.w2v_intent_models,
+        ) = word2vec.w2v_train(self.ds, X_train, y_train, X_test, y_test)
 
         # self.add_training_step("Training neural network")
-        # tf_model, tf_clf, tf_intent_models = tf_train(self.ds)
+        # tf_model, tf_clf, tf_intent_models = transformer.tf_train(self.ds)
+
+        self.models.save()
 
     def change_state(self, new_state: AppState):
         self.state = new_state
@@ -252,34 +302,37 @@ class DemoNlpApp(App):
         return [
             basic.basic_classify(
                 self.ds,
-                self.bow_vectorizer,
-                self.bow_clf,
-                self.bow_intent_models,
+                self.models.bow_vectorizer,
+                self.models.bow_clf,
+                self.models.bow_intent_models,
                 self.input_text,
                 "bow",
             ),
             ngrams.ngrams_classify(
-                self.ds, self.scenario_grams, self.intent_grams, self.input_text
+                self.ds,
+                self.models.scenario_grams,
+                self.models.intent_grams,
+                self.input_text,
             ),
             basic.basic_classify(
                 self.ds,
-                self.idf_vectorizer,
-                self.idf_clf,
-                self.idf_intent_models,
+                self.models.idf_vectorizer,
+                self.models.idf_clf,
+                self.models.idf_intent_models,
                 self.input_text,
                 "idf",
             ),
-            # word2vec.w2v_classify(
-            #     self.ds,
-            #     self.w2v_model,
-            #     self.w2v_clf,
-            #     self.w2v_intent_models,
-            #     self.input_text,
-            #     "word2vec",
+            word2vec.w2v_classify(
+                self.ds,
+                self.models.w2v_model,
+                self.models.w2v_clf,
+                self.models.w2v_intent_models,
+                self.input_text,
+                "word2vec",
+            ),
+            # transformer.tf_classify(
+            #     self.ds, self.models.tf_model, self.models.tf_clf, self.models.tf_intent_models, self.input_text, "word2vec"
             # ),
-            # tf_classify(
-            #     ds, tf_model, tf_clf, tf_intent_models, user_input, "word2vec"
-            # )
         ]
 
 
