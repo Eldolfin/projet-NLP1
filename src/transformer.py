@@ -11,7 +11,6 @@ import time
 def tf_train(
     ds,
 ):
-
     # Load pre-trained sentence embedding model
     tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
     model = AutoModel.from_pretrained("distilbert-base-uncased")
@@ -106,9 +105,7 @@ def tf_classify(
     label_str = scenario_decoder(int(scenario_n))
 
     # Enter a phrase and print result
-    (klass, proba, intent_n) = predict_scenario(
-        user_input, test_model, test_clf
-    )
+    (klass, proba, intent_n) = predict_scenario(user_input, test_model, test_clf)
     return Prediction(
         method,
         label_str,
@@ -130,9 +127,7 @@ def predict_scenario(text: str, model: AutoModel, clf: Lr) -> Tuple[int, float]:
     with torch.no_grad():
         outputs = model(**inputs)
         # [CLS] token embedding (first token)
-        clf_embedding = (
-            outputs.last_hidden_state[:, 0, :].cpu().numpy().reshape(1, -1)
-        )
+        clf_embedding = outputs.last_hidden_state[:, 0, :].cpu().numpy().reshape(1, -1)
 
     probabilities = clf.predict_proba(clf_embedding)[0]
     klass = probabilities.argmax()

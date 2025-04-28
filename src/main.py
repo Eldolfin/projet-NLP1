@@ -192,9 +192,7 @@ class DemoNlpApp(App):
         now = time.process_time()
         if self.training_steps != []:
             self.training_steps[-1].ended_at = now
-        self.training_steps.append(
-            TrainingStep(name=name, started_at=now, ended_at=0)
-        )
+        self.training_steps.append(TrainingStep(name=name, started_at=now, ended_at=0))
         self.refresh(recompose=True)
 
     def train_models_blocking(self):
@@ -230,8 +228,8 @@ class DemoNlpApp(App):
         )
 
         self.add_training_step("Training ngrams")
-        self.models.scenario_grams, self.models.intent_grams = (
-            ngrams.train_ngrams(self.ds, X_train, y_train, X_test, y_test)
+        self.models.scenario_grams, self.models.intent_grams = ngrams.train_ngrams(
+            self.ds, X_train, y_train, X_test, y_test
         )
 
         self.add_training_step("Training idf")
@@ -239,9 +237,7 @@ class DemoNlpApp(App):
             self.models.idf_vectorizer,
             self.models.idf_clf,
             self.models.idf_intent_models,
-        ) = basic.basic_train(
-            self.ds, X_train, y_train, X_test, y_test, Tfv, Lr
-        )
+        ) = basic.basic_train(self.ds, X_train, y_train, X_test, y_test, Tfv, Lr)
 
         self.add_training_step("Training word2vec")
         (
@@ -250,8 +246,10 @@ class DemoNlpApp(App):
             self.models.w2v_intent_models,
         ) = word2vec.w2v_train(self.ds, X_train, y_train, X_test, y_test)
 
-        # self.add_training_step("Training neural network")
-        # tf_model, tf_clf, tf_intent_models = transformer.tf_train(self.ds)
+        self.add_training_step("Training neural network")
+        self.tf_model, self.tf_clf, self.tf_intent_models = transformer.tf_train(
+            self.ds
+        )
 
         self.models.save()
 
@@ -281,7 +279,6 @@ class DemoNlpApp(App):
         table.sort("proba", reverse=True)
 
     def predict_class(self, text) -> List[Prediction]:
-
         if DISABLE_MODELS:
             return [
                 Prediction(
@@ -330,9 +327,14 @@ class DemoNlpApp(App):
                 self.input_text,
                 "word2vec",
             ),
-            # transformer.tf_classify(
-            #     self.ds, self.models.tf_model, self.models.tf_clf, self.models.tf_intent_models, self.input_text, "word2vec"
-            # ),
+            transformer.tf_classify(
+                self.ds,
+                self.models.tf_model,
+                self.models.tf_clf,
+                self.models.tf_intent_models,
+                self.input_text,
+                "word2vec",
+            ),
         ]
 
 
