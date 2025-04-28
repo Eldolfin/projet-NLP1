@@ -3,10 +3,15 @@ from multiprocessing import Pool
 import random
 from utils import Prediction
 import time
+from typing import List, Tuple
+from dataclasses import dataclass
+
 
 Ns = [2, 3, 4]
 
 
+# TODO: Change to dataclass for pickle loading??
+@dataclass
 class NgramList:
     def __init__(self, n):
         self.ngrams = n
@@ -27,7 +32,9 @@ class NgramList:
         return str(self.ngrams)
 
 
-def train_ngrams(ds, X_train, y_train, X_test, y_test):
+def train_ngrams(
+    ds, X_train, y_train, X_test, y_test
+) -> Tuple[NgramList, List[NgramList]]:
     # Decoder to translate ints to class names
     class_list = ds["train"].features["scenario"].names
     scenario_ngrams = NgramList({})
@@ -53,7 +60,7 @@ def train_ngrams(ds, X_train, y_train, X_test, y_test):
 
 def ngrams_classify(
     ds, scenario_ngrams: NgramList, intent_ngrams: list, user_input: str
-):
+) -> Prediction:
     before = time.process_time()
     scenario_decoder = ds["train"].features["scenario"].int2str
     intent_decoder = ds["train"].features["intent"].int2str
@@ -102,7 +109,7 @@ def ngrams_classify(
     )
 
 
-def build_scenario_grams(ds, n):
+def build_scenario_grams(ds, n: int):
     """
     This function builds the ngrams for the given n for the scenario class.
     """
@@ -141,27 +148,24 @@ def build_intent_grams(ds, n, class_int):
 
 ########################### GENERATION ###########################
 def ngrams_generate(
-    start_word: str,
+    previous_words: List[str],
     scenario_ngrams: NgramList,
     intent_ngrams: list,
     words: int = 5,
     scenario: int = -1,
     intent: int = -1,
-):
-    output = start_word
-    previous_words = [start_word]
+) -> str:
+    previous_words = list(previous_words)
 
     for i in range(words - 1):
         new_word = generate_next_token(
             previous_words, scenario_ngrams, intent_ngrams, scenario, intent
         )
         if new_word is None:
-            return output + "?"
-
-        output += " " + new_word
+            break
         previous_words.append(new_word)
 
-    return output + "?"
+    return " ".join(previous_words)
 
 
 def generate_next_token(
@@ -180,7 +184,7 @@ def generate_next_token(
         previous_seq = tuple(previous_words[-(n - 1) :])
 
         if scenario > 0:
-            scenario_ngram = scenario_ngrams.get_grams(n, scenario)
+            scenario_ngram = scenario_ngrams.get_gram(n, scenario)
         else:
             scenario_ngram = [
                 gram

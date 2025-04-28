@@ -17,6 +17,7 @@ https://github.com/user-attachments/assets/84d10e43-1515-4a40-b5b3-9bae11098f8e
   - [ ] Transformers
 - [ ] rapport latex
 - [ ] benchmarks (f1 scores)
+- [ ] make models vote
 - [x] cache weights
 - [ ] demo: use [rich](https://github.com/Textualize/rich)
   - [x] table with models results and probabilities

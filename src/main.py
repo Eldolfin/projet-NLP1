@@ -22,10 +22,12 @@ from dataclasses import dataclass
 import pickle
 from typing import Union
 import os
+from textual.suggester import Suggester
 
 # Disable training models and loading dataset for faster ui iteration
 DISABLE_MODELS = False
 MODEL_SAVE_PATH = "./.cache/models.pkl"
+countries = ["England", "Scotland", "Portugal", "Spain", "France"]
 
 if DISABLE_MODELS:
     import random as rand
@@ -73,7 +75,6 @@ class Models:
             pickle.dump(self, f)
 
     def load() -> Union[Self, None]:
-        # TODO: return none if not exist
         if not os.path.isfile(MODEL_SAVE_PATH):
             return None
         with open(MODEL_SAVE_PATH, "rb") as f:
@@ -144,7 +145,10 @@ class DemoNlpApp(App):
                             classes="training-step",
                         )
             case AppState.INFERENCE_INPUT:
-                yield Input(placeholder="Type here...")
+                yield Input(
+                    placeholder="Type here...",
+                    suggester=SmartSuggester(self, case_sensitive=False),
+                )
                 yield DataTable()
 
     def compose(self) -> ComposeResult:
@@ -178,30 +182,34 @@ class DemoNlpApp(App):
             )
 
     async def train_models(self):
-        if DISABLE_MODELS:
-            self.add_training_step("Training fake model 1")
-            await asyncio.sleep(1)
-            self.add_training_step("Training fake model 2")
-            await asyncio.sleep(1)
-            self.add_training_step("Training fake model 3")
-            await asyncio.sleep(1)
-        else:
-            await asyncio.to_thread(self.train_models_blocking)
+        await asyncio.to_thread(self.train_models_blocking)
 
     def add_training_step(self, name: str):
         now = time.process_time()
         if self.training_steps != []:
             self.training_steps[-1].ended_at = now
-        self.training_steps.append(TrainingStep(name=name, started_at=now, ended_at=0))
+        self.training_steps.append(
+            TrainingStep(name=name, started_at=now, ended_at=0)
+        )
         self.refresh(recompose=True)
 
     def train_models_blocking(self):
-        self.add_training_step(f"Trying to load models from {MODEL_SAVE_PATH}")
+        if DISABLE_MODELS:
+            self.add_training_step("Training fake model 1")
+            time.sleep(1)
+            self.add_training_step("Training fake model 2")
+            time.sleep(1)
+            self.add_training_step("Training fake model 3")
+            time.sleep(1)
+            return
+
+        self.add_training_step(
+            f"Trying to load models from [i]{MODEL_SAVE_PATH}[/i]"
+        )
         models = Models.load()
         if models is not None:
             self.models = models
             return
-
         import basic
         import ngrams
         import word2vec
@@ -228,8 +236,8 @@ class DemoNlpApp(App):
         )
 
         self.add_training_step("Training ngrams")
-        self.models.scenario_grams, self.models.intent_grams = ngrams.train_ngrams(
-            self.ds, X_train, y_train, X_test, y_test
+        self.models.scenario_grams, self.models.intent_grams = (
+            ngrams.train_ngrams(self.ds, X_train, y_train, X_test, y_test)
         )
 
         self.add_training_step("Training idf")
@@ -237,18 +245,20 @@ class DemoNlpApp(App):
             self.models.idf_vectorizer,
             self.models.idf_clf,
             self.models.idf_intent_models,
-        ) = basic.basic_train(self.ds, X_train, y_train, X_test, y_test, Tfv, Lr)
+        ) = basic.basic_train(
+            self.ds, X_train, y_train, X_test, y_test, Tfv, Lr
+        )
 
-        self.add_training_step("Training word2vec")
-        (
-            self.models.w2v_model,
-            self.models.w2v_clf,
-            self.models.w2v_intent_models,
-        ) = word2vec.w2v_train(self.ds, X_train, y_train, X_test, y_test)
+        # self.add_training_step("Training word2vec")
+        # (
+        #     self.models.w2v_model,
+        #     self.models.w2v_clf,
+        #     self.models.w2v_intent_models,
+        # ) = word2vec.w2v_train(self.ds, X_train, y_train, X_test, y_test)
 
         self.add_training_step("Training neural network")
-        self.tf_model, self.tf_clf, self.tf_intent_models = transformer.tf_train(
-            self.ds
+        self.tf_model, self.tf_clf, self.tf_intent_models = (
+            transformer.tf_train(self.ds)
         )
 
         self.models.save()
@@ -311,31 +321,69 @@ class DemoNlpApp(App):
                 self.models.intent_grams,
                 self.input_text,
             ),
-            basic.basic_classify(
-                self.ds,
-                self.models.idf_vectorizer,
-                self.models.idf_clf,
-                self.models.idf_intent_models,
-                self.input_text,
-                "idf",
-            ),
-            word2vec.w2v_classify(
-                self.ds,
-                self.models.w2v_model,
-                self.models.w2v_clf,
-                self.models.w2v_intent_models,
-                self.input_text,
-                "word2vec",
-            ),
-            transformer.tf_classify(
-                self.ds,
-                self.models.tf_model,
-                self.models.tf_clf,
-                self.models.tf_intent_models,
-                self.input_text,
-                "word2vec",
-            ),
+            # basic.basic_classify(
+            #     self.ds,
+            #     self.models.idf_vectorizer,
+            #     self.models.idf_clf,
+            #     self.models.idf_intent_models,
+            #     self.input_text,
+            #     "idf",
+            # ),
+            # word2vec.w2v_classify(
+            #     self.ds,
+            #     self.models.w2v_model,
+            #     self.models.w2v_clf,
+            #     self.models.w2v_intent_models,
+            #     self.input_text,
+            #     "word2vec",
+            # ),
+            # transformer.tf_classify(
+            #     self.ds,
+            #     self.models.tf_model,
+            #     self.models.tf_clf,
+            #     self.models.tf_intent_models,
+            #     self.input_text,
+            #     "word2vec",
+            # ),
         ]
+
+
+class SmartSuggester(Suggester):
+    """Give completion suggestions based on a fixed list of options.
+
+    Example:
+        ```py
+        class MyApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield Input(suggester=SmartSuggester(case_sensitive=False))
+        ```
+    """
+
+    def __init__(
+        self,
+        app: DemoNlpApp,
+        case_sensitive=False,
+    ) -> None:
+        super().__init__(case_sensitive=case_sensitive)
+        self.app = DemoNlpApp
+
+    async def get_suggestion(self, value: str) -> str | None:
+        """Gets a completion from the given possibilities.
+
+        Args:
+            value: The current value.
+
+        Returns:
+            A valid completion suggestion or `None`.
+        """
+        if DISABLE_MODELS:
+            return "patate" if value.startswith("patate") else None
+
+        return ngrams.ngrams_generate(
+            value.split(),
+            self.app.models.scenario_grams,
+            self.app.models.intent_grams,
+        )
 
 
 if __name__ == "__main__":
