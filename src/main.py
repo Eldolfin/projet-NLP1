@@ -20,7 +20,7 @@ import time
 from phrases import SCENARIOS
 from dataclasses import dataclass
 import pickle
-from typing import Union
+from typing import Union, Dict
 import os
 from textual.suggester import Suggester
 
@@ -56,10 +56,10 @@ class Models:
     # Bag Of Words
     bow_vectorizer = None
     bow_clf = None
-    bow_intent_models = None
+    bow_intent_models: Dict | None = None
     input_text = None
     # Ngrams
-    scenario_grams = None
+    scenario_grams: ngrams.NgramList | None = None
     intent_grams = None
     # IDF
     idf_vectorizer = None
@@ -69,12 +69,17 @@ class Models:
     w2v_model = None
     w2v_clf = None
     w2v_intent_models = None
+    # Neural Network
+    tf_model = None
+    tf_clf = None
+    tf_intent_models = None
 
     def save(self) -> None:
         with open(MODEL_SAVE_PATH, "wb") as f:
             pickle.dump(self, f)
 
-    def load() -> Union[Self, None]:
+    @staticmethod
+    def load() -> Self | None:  # type: ignore[misc]
         if not os.path.isfile(MODEL_SAVE_PATH):
             return None
         with open(MODEL_SAVE_PATH, "rb") as f:
@@ -91,7 +96,7 @@ class DemoNlpApp(App):
     input_text = reactive("")
     state = reactive(AppState.LOADING_DATASET)
     training_steps: reactive[List[TrainingStep]] = reactive([])
-    models: Models = Models()
+    models: Models | None = None
     BINDINGS = [
         Binding(key="^q", action="quit", description="Quit the app"),
     ]
@@ -146,7 +151,7 @@ class DemoNlpApp(App):
                         )
             case AppState.INFERENCE_INPUT:
                 yield Input(
-                    placeholder="Type here...",
+                    placeholder="Demandez une question à Alexa (en français)...",
                     suggester=SmartSuggester(self, case_sensitive=False),
                 )
                 yield DataTable()
@@ -206,10 +211,10 @@ class DemoNlpApp(App):
         self.add_training_step(
             f"Trying to load models from [i]{MODEL_SAVE_PATH}[/i]"
         )
-        models = Models.load()
-        if models is not None:
-            self.models = models
+        self.models = Models.load()
+        if self.models is not None:
             return
+        self.models = Models()
         import basic
         import ngrams
         import word2vec
@@ -256,10 +261,22 @@ class DemoNlpApp(App):
         #     self.models.w2v_intent_models,
         # ) = word2vec.w2v_train(self.ds, X_train, y_train, X_test, y_test)
 
-        self.add_training_step("Training neural network")
-        self.tf_model, self.tf_clf, self.tf_intent_models = (
-            transformer.tf_train(self.ds)
-        )
+        # self.add_training_step("Training neural network")
+        # self.tf_model, self.tf_clf, self.tf_intent_models = (
+        #     transformer.tf_train(self.ds)
+        # )
+
+        # self.add_training_step("Training word2vec")
+        # (
+        #     self.models.w2v_model,
+        #     self.models.w2v_clf,
+        #     self.models.w2v_intent_models,
+        # ) = word2vec.w2v_train(self.ds, X_train, y_train, X_test, y_test)
+
+        # self.add_training_step("Training neural network")
+        # self.tf_model, self.tf_clf, self.tf_intent_models = (
+        #     transformer.tf_train(self.ds)
+        # )
 
         self.models.save()
 
@@ -365,7 +382,7 @@ class SmartSuggester(Suggester):
         case_sensitive=False,
     ) -> None:
         super().__init__(case_sensitive=case_sensitive)
-        self.app = DemoNlpApp
+        self.app = app
 
     async def get_suggestion(self, value: str) -> str | None:
         """Gets a completion from the given possibilities.
@@ -379,10 +396,12 @@ class SmartSuggester(Suggester):
         if DISABLE_MODELS:
             return "patate" if value.startswith("patate") else None
 
+        assert self.app.models != None
+        assert self.app.models.scenario_grams != None
+
         return ngrams.ngrams_generate(
             value.split(),
             self.app.models.scenario_grams,
-            self.app.models.intent_grams,
         )
 
 

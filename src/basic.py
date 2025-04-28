@@ -10,6 +10,7 @@ import time
 
 # from phrases import UWU_PHRASES
 from utils import Prediction
+from typing import Dict
 
 
 def basic_train(
@@ -47,7 +48,7 @@ def basic_classify(
     ds,
     vectorizer: Cv | Tfv,
     clf: Lr | Mnb,
-    intent_models: dict,
+    intent_models: Dict,
     user_input: str,
     method: str,
 ) -> Prediction:

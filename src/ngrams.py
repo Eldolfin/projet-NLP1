@@ -3,8 +3,8 @@ from multiprocessing import Pool
 import random
 from utils import Prediction
 import time
-from typing import List, Tuple
 from dataclasses import dataclass
+from typing import Tuple, List, Dict
 
 
 Ns = [2, 3, 4]
@@ -13,8 +13,12 @@ Ns = [2, 3, 4]
 # TODO: Change to dataclass for pickle loading??
 @dataclass
 class NgramList:
-    def __init__(self, n):
-        self.ngrams = n
+    # Dict
+    #   key: prefix length, n-gram's `n`
+    #   values: List
+    #     key: scenario/intent
+    #     values: ???
+    ngrams: Dict[int, List[List[Tuple]]]
 
     def add_ngram(self, n, ngram_list):
         self.ngrams[n] = ngram_list
@@ -150,16 +154,14 @@ def build_intent_grams(ds, n, class_int):
 def ngrams_generate(
     previous_words: List[str],
     scenario_ngrams: NgramList,
-    intent_ngrams: list,
     words: int = 5,
     scenario: int = -1,
-    intent: int = -1,
 ) -> str:
     previous_words = list(previous_words)
 
     for i in range(words - 1):
         new_word = generate_next_token(
-            previous_words, scenario_ngrams, intent_ngrams, scenario, intent
+            previous_words, scenario_ngrams, scenario
         )
         if new_word is None:
             break
@@ -171,9 +173,7 @@ def ngrams_generate(
 def generate_next_token(
     previous_words: list,
     scenario_ngrams: NgramList,
-    intent_ngrams: list,
     scenario: int = -1,
-    intent: int = -1,
 ):
     """
     This function generates the next token based on the previous word and the ngrams.
