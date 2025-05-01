@@ -31,6 +31,7 @@ def basic_train(
     # Train on each sub class
     intent_models = {}
     class_list = ds["train"].features["scenario"].names
+    print(class_list)
     for i in range(len(class_list)):
         (intent_vectorizer, intent_clf) = train_on_class(
             ds, i, vectorizer_template, clf_template
@@ -60,9 +61,7 @@ def basic_classify(
     test_vectorizer, test_clf = intent_models[scenario_n]
     label_str = scenario_decoder(int(scenario_n))
 
-    (klass, proba, intent_n) = predict_scenario(
-        user_input, test_vectorizer, test_clf
-    )
+    (klass, proba, intent_n) = predict_scenario(user_input, test_vectorizer, test_clf)
     return Prediction(
         method,
         label_str,

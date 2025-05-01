@@ -1,15 +1,20 @@
 from sklearn.linear_model import LogisticRegression as Lr, SGDClassifier as SGD
-from sentence_transformers import SentenceTransformer
-from transformers import AutoModel, AutoTokenizer, TrainingArguments, Trainer
+from transformers import (
+    AutoModel,
+    AutoTokenizer,
+    TrainingArguments,
+    Trainer,
+    DistilBertForSequenceClassification,
+)
 from sklearn import preprocessing
-from sklearn.svm import OneClassSVM
 from typing import Tuple
 from utils import Prediction
+from datasets import Dataset, Value
 import torch
 import time
 
 training_args = TrainingArguments(
-    output_dir="your-model",
+    output_dir="transformer",
     learning_rate=2e-5,
     per_device_train_batch_size=16,
     per_device_eval_batch_size=16,
@@ -29,22 +34,39 @@ def tf_train(
     X_test,
     y_test,
 ):
-    # Load pre-trained sentence embedding model
+    # Define toenizer and model to use
     tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
-    model = AutoModel.from_pretrained("distilbert-base-uncased")
-    encoder = SentenceTransformer("dangvantuan/sentence-camembert-large")
-    X_train_encoded = model.encode(X_train)
-    X_test_encoded = model.encode(X_test)
+    model = DistilBertForSequenceClassification.from_pretrained(
+        "distilbert-base-uncased",
+        num_labels=len(ds["train"].features["scenario"].names),
+    )
+    X_train_ds = Dataset.from_dict({"text": X_train, "labels": y_train})
+    X_test_ds = Dataset.from_dict({"text": X_test, "labels": y_test})
 
+    # tokenize the inputs
+    def preprocess(input):
+        result = tokenizer(input["text"], padding="max_length", truncation=True)
+        result["labels"] = input["labels"]
+        return result
+
+    X_tokenized_train = X_train_ds.map(preprocess, batched=True).cast_column(
+        "labels", Value("int64")
+    )
+    X_tokenized_test = X_test_ds.map(preprocess, batched=True).cast_column(
+        "labels", Value("int64")
+    )
+
+    # Define the actual transformer above the model and train it
     trainer = Trainer(
         model=model,
         args=training_args,
-        train_dataset=X_train_encoded,
-        eval_dataset=X_test_encoded,
-        processing_class=tokenizer,
+        train_dataset=X_tokenized_train,
+        eval_dataset=X_tokenized_test,
     )
     trainer.train()
 
+    # Evaluate the model
+    trainer.evaluate()
     trainer.predict(X_test, y_test)
 
     # Train sub-models for each scenario
@@ -54,7 +76,7 @@ def tf_train(
     #     (intent_model, intent_clf) = train_on_class(ds_encoded, i)
     #     intent_models[i] = (intent_model, intent_clf)
 
-    return model, clf, intent_models
+    return model, trainer, intent_models
 
 
 def train_on_class(ds, class_index):

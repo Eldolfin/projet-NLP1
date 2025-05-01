@@ -193,9 +193,7 @@ class DemoNlpApp(App):
         now = time.process_time()
         if self.training_steps != []:
             self.training_steps[-1].ended_at = now
-        self.training_steps.append(
-            TrainingStep(name=name, started_at=now, ended_at=0)
-        )
+        self.training_steps.append(TrainingStep(name=name, started_at=now, ended_at=0))
         self.refresh(recompose=True)
 
     def train_models_blocking(self):
@@ -208,9 +206,7 @@ class DemoNlpApp(App):
             time.sleep(1)
             return
 
-        self.add_training_step(
-            f"Trying to load models from [i]{MODEL_SAVE_PATH}[/i]"
-        )
+        self.add_training_step(f"Trying to load models from [i]{MODEL_SAVE_PATH}[/i]")
         self.models = Models.load()
         if self.models is not None:
             return
@@ -241,18 +237,16 @@ class DemoNlpApp(App):
         )
 
         self.add_training_step("Training ngrams")
-        self.models.scenario_grams, self.models.intent_grams = (
-            ngrams.train_ngrams(self.ds, X_train, y_train, X_test, y_test)
+        self.models.scenario_grams, self.models.intent_grams = ngrams.train_ngrams(
+            self.ds, X_train, y_train, X_test, y_test
         )
 
-        self.add_training_step("Training idf")
-        (
-            self.models.idf_vectorizer,
-            self.models.idf_clf,
-            self.models.idf_intent_models,
-        ) = basic.basic_train(
-            self.ds, X_train, y_train, X_test, y_test, Tfv, Lr
-        )
+        # self.add_training_step("Training idf")
+        # (
+        #     self.models.idf_vectorizer,
+        #     self.models.idf_clf,
+        #     self.models.idf_intent_models,
+        # ) = basic.basic_train(self.ds, X_train, y_train, X_test, y_test, Tfv, Lr)
 
         # self.add_training_step("Training word2vec")
         # (

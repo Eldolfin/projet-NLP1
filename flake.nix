@@ -35,6 +35,7 @@
                     pylsp-mypy
                     pyls-isort
 
+                    accelerate
                     black
                     graphviz
                     ipdb
@@ -52,6 +53,7 @@
                     seaborn
                     snakeviz
                     termcolor
+                    transformers[torch]
                     torch
                     wikipedia
                   ]
