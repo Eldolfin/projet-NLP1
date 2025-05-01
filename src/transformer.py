@@ -1,54 +1,58 @@
-from sklearn.linear_model import LogisticRegression as Lr
+from sklearn.linear_model import LogisticRegression as Lr, SGDClassifier as SGD
+from sentence_transformers import SentenceTransformer
+from transformers import AutoModel, AutoTokenizer, TrainingArguments, Trainer
 from sklearn import preprocessing
-from transformers import AutoModel, AutoTokenizer
 from sklearn.svm import OneClassSVM
 from typing import Tuple
 from utils import Prediction
 import torch
 import time
 
+training_args = TrainingArguments(
+    output_dir="your-model",
+    learning_rate=2e-5,
+    per_device_train_batch_size=16,
+    per_device_eval_batch_size=16,
+    num_train_epochs=2,
+    weight_decay=0.01,
+    eval_strategy="epoch",
+    save_strategy="epoch",
+    load_best_model_at_end=True,
+    push_to_hub=True,
+)
+
 
 def tf_train(
     ds,
+    X_train,
+    y_train,
+    X_test,
+    y_test,
 ):
     # Load pre-trained sentence embedding model
     tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
     model = AutoModel.from_pretrained("distilbert-base-uncased")
+    encoder = SentenceTransformer("dangvantuan/sentence-camembert-large")
+    X_train_encoded = model.encode(X_train)
+    X_test_encoded = model.encode(X_test)
 
-    def encode(ds) -> dict:
-        inputs = tokenizer(
-            ds["utt"],
-            return_tensors="pt",
-            truncation=True,
-            padding=True,
-            max_length=128,
-        )
-        with torch.no_grad():
-            outputs = model(**inputs)
-        # [CLS] token embedding (first token)
-        cls_embedding = outputs.last_hidden_state[:, 0, :].cpu().numpy()
-        return {"embedding": cls_embedding}
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=X_train_encoded,
+        eval_dataset=X_test_encoded,
+        processing_class=tokenizer,
+    )
+    trainer.train()
 
-    # Encode the texts into vectors
-    ds_encoded = ds.map(encode, batched=True)
-
-    X_train = ds_encoded["train"]["embedding"]
-    y_train = ds_encoded["train"]["scenario"]
-    X_test = ds_encoded["test"]["embedding"]
-    y_test = ds_encoded["test"]["scenario"]
-
-    # Train a classifier
-    clf = Lr(max_iter=1200)
-    scaler = preprocessing.StandardScaler().fit(X_train)
-    X_train_scaled = scaler.transform(X_train)
-    clf.fit(X_train_scaled, y_train)
+    trainer.predict(X_test, y_test)
 
     # Train sub-models for each scenario
     intent_models = {}
     class_list = ds["train"].features["scenario"].names
-    for i in range(len(class_list)):
-        (intent_model, intent_clf) = train_on_class(ds_encoded, i)
-        intent_models[i] = (intent_model, intent_clf)
+    # for i in range(len(class_list)):
+    #     (intent_model, intent_clf) = train_on_class(ds_encoded, i)
+    #     intent_models[i] = (intent_model, intent_clf)
 
     return model, clf, intent_models
 
@@ -78,7 +82,7 @@ def train_on_class(ds, class_index):
         clf.fit(X_train_scaled, y_train)
         score = clf.score(X_test_scaled, y_test)
     else:
-        clf = OneClassSVM(gamma="auto")
+        clf = SGD(max_iter=1200)
         clf.fit(X_train_scaled, y_train)
         score = 1.0
 
@@ -101,11 +105,15 @@ def tf_classify(
     intent_decoder = ds["train"].features["intent"].int2str
 
     _, _, scenario_n = predict_scenario(user_input, model, clf)
-    test_model, test_clf = intent_models[scenario_n]
+    # test_model, test_clf = intent_models[scenario_n]
     label_str = scenario_decoder(int(scenario_n))
 
     # Enter a phrase and print result
-    (klass, proba, intent_n) = predict_scenario(user_input, test_model, test_clf)
+    (klass, proba, intent_n) = (
+        "unknown",
+        0,
+        0,
+    )  # predict_scenario(user_input, test_model, test_clf)
     return Prediction(
         method,
         label_str,
@@ -130,6 +138,8 @@ def predict_scenario(text: str, model: AutoModel, clf: Lr) -> Tuple[int, float]:
         clf_embedding = outputs.last_hidden_state[:, 0, :].cpu().numpy().reshape(1, -1)
 
     probabilities = clf.predict_proba(clf_embedding)[0]
+    print(probabilities)
+
     klass = probabilities.argmax()
     proba = probabilities[klass]
     proba = round(proba * 100, 3)

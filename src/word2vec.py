@@ -15,7 +15,8 @@ def w2v_train(
     # print("Stawting w2v training... (≧◡≦) \n")
 
     # Load pre-trained sentence embedding model
-    model = SentenceTransformer("all-MiniLM-L6-v2")
+    model = SentenceTransformer("dangvantuan/sentence-camembert-large")
+    # Make sure there are several classes
 
     # Encode the texts into vectors
     X_train_encoded = model.encode(X_train)
@@ -61,9 +62,7 @@ def train_on_class(ds, class_index):
         clf.fit(X_train_encoded, y_train)
         # score = clf.score(X_test_encoded, y_test)
     else:
-        clf = OneClassSVM(
-            gamma="auto"
-        )  # crashes because it doesn't have predict_proba
+        clf = OneClassSVM(gamma="auto")  # crashes because it doesn't have predict_proba
         clf.fit(X_train_encoded, y_train)
         # score = 1.0
 
@@ -92,9 +91,7 @@ def w2v_classify(
     label_str = scenario_decoder(int(scenario_n))
 
     # Enter a phrase and print result
-    (klass, proba, intent_n) = predict_scenario(
-        user_input, test_model, test_clf
-    )
+    (klass, proba, intent_n) = predict_scenario(user_input, test_model, test_clf)
     return Prediction(
         method, label_str, intent_decoder(int(intent_n)), proba, before=before
     )
