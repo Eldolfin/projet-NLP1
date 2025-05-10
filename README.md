@@ -23,5 +23,4 @@ https://github.com/user-attachments/assets/84d10e43-1515-4a40-b5b3-9bae11098f8e
   - [x] table with models results and probabilities
   - [x] live prediction on each keystroke
   - [x] show each model training progress
-  - [ ] copilot like autocompletion with transformers
-  - [ ] text-to-speech button
+  - [x] copilot like autocompletion with transformers
