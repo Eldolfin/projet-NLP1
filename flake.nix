@@ -19,6 +19,7 @@
               (
                 ppkgs:
                   with ppkgs; [
+                    tiktoken
                     sentence-transformers
                     ipython
                     rich
@@ -53,7 +54,8 @@
                     seaborn
                     snakeviz
                     termcolor
-                    transformers[torch]
+                    transformers
+                    [torch]
                     torch
                     wikipedia
                   ]
