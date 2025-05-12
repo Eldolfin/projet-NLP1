@@ -1,5 +1,6 @@
 from textual import work
 from textual.app import App, ComposeResult
+from textual import log
 from textual.binding import Binding
 from textual.reactive import reactive
 from textual.widgets import (
@@ -22,6 +23,8 @@ from dataclasses import dataclass
 import pickle
 from typing import Union, Dict
 import os
+import torch
+from sklearn.feature_extraction.text import TfidfVectorizer
 from textual.suggester import Suggester
 
 # Disable training models and loading dataset for faster ui iteration
@@ -36,7 +39,8 @@ else:
     import ngrams
     import word2vec
     import transformer
-
+    import feedforward
+    import rnn
 
 @dataclass
 class TrainingStep:
@@ -69,6 +73,12 @@ class Models:
     w2v_model = None
     w2v_clf = None
     w2v_intent_models = None
+    #FeedForward
+    ff_model = None
+    ff_vectorizer = None
+    #RNN
+    rnn_model = None
+    rnn_onehot = None
     # Neural Network
     tf_model = None
     tf_clf = None
@@ -255,10 +265,15 @@ class DemoNlpApp(App):
         #     self.models.w2v_intent_models,
         # ) = word2vec.w2v_train(self.ds, X_train, y_train, X_test, y_test)
 
-        # self.add_training_step("Training neural network")
-        # self.tf_model, self.tf_clf, self.tf_intent_models = (
-        #     transformer.tf_train(self.ds)
-        # )
+        self.add_training_step("Training FeedForward")
+        self.models.ff_model, self.models.ff_vectorizer = feedforward.train(
+            X_train, y_train, X_test, y_test
+        )
+
+        self.add_training_step("Training RNN")
+        self.models.rnn_model, self.models.rnn_onehot = rnn.train(
+            X_train, y_train, X_test, y_test
+        )
 
         # self.add_training_step("Training word2vec")
         # (
@@ -317,6 +332,7 @@ class DemoNlpApp(App):
                     before=time.process_time() - 0.01,
                 ),
             ]
+        
         return [
             basic.basic_classify(
                 self.ds,
@@ -331,6 +347,20 @@ class DemoNlpApp(App):
                 self.models.scenario_grams,
                 self.models.intent_grams,
                 self.input_text,
+            ),
+            feedforward.classify(
+                self.ds,
+                self.models.ff_model,
+                self.models.ff_vectorizer,
+                self.input_text,
+                "feedforward"
+            ),
+            rnn.classify(
+                self.ds,
+                self.models.rnn_model,
+                self.models.rnn_onehot,
+                self.input_text,
+                "RNN"
             ),
             # basic.basic_classify(
             #     self.ds,

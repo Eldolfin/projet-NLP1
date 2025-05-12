@@ -1,17 +1,9 @@
 import torch
-from datasets import load_dataset
-import nltk
-from collections import Counter
-import itertools
-import numpy as np
 from torch.utils.data import TensorDataset, DataLoader
 import torch.nn as nn
 from sklearn.feature_extraction.text import TfidfVectorizer
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-import random
-from gensim.models import Word2Vec
-import gensim.downloader as api
+from utils import Prediction
+import time
 
 #Model definition
 
@@ -32,7 +24,7 @@ class Feedforward(nn.Module):
         return out
 
 #private functions
-def _train(model, training_data, n_epoch, learning_rate, report_every = 1, criterion = nn.CrossEntropyLoss(), optimizer = torch.optim.SGD):
+def _train(model, training_data, n_epoch, learning_rate, report_every = 0, criterion = nn.CrossEntropyLoss(), optimizer = torch.optim.SGD):
     current_loss = 0
     model.train()
     optimizer = optimizer(model.parameters(), lr=learning_rate)
@@ -59,7 +51,7 @@ def _train(model, training_data, n_epoch, learning_rate, report_every = 1, crite
             print(f"{iter} ({iter / n_epoch:.0%}): \t average batch loss = {current_loss / len(training_data)}")
         current_loss = 0
 
-def train(ds, X_train, Y_train, X_test, Y_test):
+def train(X_train, Y_train, X_test, Y_test):
     #Hyperparams:
     batch_size = 25
 
@@ -74,4 +66,18 @@ def train(ds, X_train, Y_train, X_test, Y_test):
 
     model = Feedforward(len(trainloader.dataset[0][0]), 100, 18, nn.functional.relu)
     _train(model, trainloader, 100, 1e-4, optimizer=torch.optim.Adam)
-    return model
+    return model, vectorizer
+
+def classify(ds, model, vectorizer, input, method):
+    before = time.process_time()
+    scenario_decoder = ds["train"].features["scenario"].int2str
+
+    vectorized = torch.Tensor(vectorizer.transform([input]).toarray())
+    model.eval()
+    output = model.forward(vectorized)
+    proba = output[0][output.argmax()].item()
+    index = output.argmax().item()
+
+    return Prediction(
+        method, scenario_decoder(index), "", proba, before=before
+    )
